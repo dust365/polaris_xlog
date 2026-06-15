@@ -102,15 +102,33 @@ implementation 'com.tencent.mars:mars-xlog:1.2.5'
 
 ### iOS
 
-mars-xlog **不在 CocoaPods trunk 上**，需二选一（见 `ios/xlog_plugin.podspec` 注释）：
+mars-xlog **不在 CocoaPods trunk 上，也不提供预编译包**，因此本插件 **vendored 一个从源码编译的 `mars.framework`**（已随仓库提交，位于 `ios/Frameworks/mars.framework`，当前为 **arm64 真机**切片）。podspec 已配置 `vendored_frameworks`，`pod install` 即可，无需额外操作。
 
-1. **依赖 git 源（推荐用 podspec 注释里的方式）**：在 example app 的 `ios/Podfile` 中加
-   `pod 'mars', :git => 'https://github.com/Tencent/mars.git', :tag => 'v1.2.5'`（见 `example/ios/PodfileSnippet.txt`）。
-2. **vendored framework**：自行编译出 `mars.framework` 放入 `ios/Frameworks/`，在 podspec 中启用 `vendored_frameworks`。
+Swift 插件 `XlogPlugin.swift` 通过 ObjC++ 桥接 `XLogBridge.mm` 调用 mars 的 C++ appender API（`<mars/xlog/appender.h>` + `<mars/xlog/xloggerbase.h>`）。日志目录为 `Documents/xlog`。
 
-Swift 插件 `XlogPlugin.swift` 通过 ObjC++ 桥接 `XLogBridge.mm` 调用 mars 的 C++ appender API。日志目录为 `Documents/xlog`。
+实现要点（踩坑记录）：
 
-> mars 的 C++ 头文件路径（`<mars/xlog/xlogger.h>`、`<mars/xlog/appender.h>`）与具体 struct 字段（如 `XLogConfig`）随版本略有差异；若编译报符号找不到，请对照所用 mars 版本的头文件微调 `XLogBridge.mm`。
+- 只 include `xloggerbase.h`（纯 `extern "C"`），不 include `xlogger.h`（它用相对路径 `#include "mars/comm/string_cast.h"`，与 framework 的 `Headers/{comm,xlog}` 布局不匹配）。
+- mars 的 `comm/strutil.cc` 依赖 OpenSSL 的 `MD5()`，而 iOS 无 libcrypto；`XLogBridge.mm` 里用 CommonCrypto 的 `CC_MD5` 提供了一个 `MD5` shim。
+- 该 framework 仅含真机 arm64；要在**模拟器**上跑，需另编译 `SIMULATORARM64` 切片并合成 `.xcframework`（见下）。
+- 插件要求关闭 Flutter 的 Swift Package Manager：`flutter config --no-enable-swift-package-manager`。
+
+#### 重新编译 mars.framework
+
+```bash
+tools/build_mars_ios.sh            # 默认 master
+tools/build_mars_ios.sh v1.2.6     # 指定 tag（若存在）
+```
+
+脚本会克隆 Tencent/mars、用 cmake 编译出 `mars.framework` 并拷到 `ios/Frameworks/`。需要 `git / cmake / Xcode / python3`。
+
+#### 在真机上运行（需要你的 Apple 账号）
+
+`flutter create` 生成的工程默认 bundle id 是 `com.example.xlogPluginExample`，签名需你本人配置：
+
+1. `open example/ios/Runner.xcworkspace`
+2. 选中 **Runner** target → **Signing & Capabilities**：登录你的 Apple ID、选择 Team，必要时把 Bundle Identifier 改成唯一值
+3. `cd example && flutter run -d <iPhone>`
 
 ## 目录结构
 

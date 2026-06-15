@@ -13,22 +13,26 @@ Pod::Spec.new do |s|
   s.dependency 'Flutter'
 
   # --- mars-xlog ---------------------------------------------------------
-  # Tencent mars xlog is not on the CocoaPods trunk. Pick ONE of:
-  #
-  # (A) Vendor a prebuilt framework (recommended). Build mars/xlog from
-  #     https://github.com/Tencent/mars and drop mars.framework into
-  #     ios/Frameworks/, then uncomment:
-  # s.vendored_frameworks = 'Frameworks/mars.framework'
-  #
-  # (B) Depend on a podspec you host (git source in the example Podfile):
-  s.dependency 'mars', '~> 1.2.5'
+  # Tencent mars xlog is not on the CocoaPods trunk and ships no prebuilt
+  # binary, so we vendor a framework built from source. Currently arm64
+  # **device** only (build via tools/build_mars_ios.sh). To also run on the
+  # iOS simulator, build a SIMULATORARM64 slice and ship an .xcframework.
+  s.vendored_frameworks = 'Frameworks/mars.framework'
+  s.libraries = 'z', 'c++'
   # -----------------------------------------------------------------------
 
   s.platform = :ios, '11.0'
   s.pod_target_xcconfig = {
     'DEFINES_MODULE' => 'YES',
     'CLANG_CXX_LANGUAGE_STANDARD' => 'c++14',
-    'CLANG_CXX_LIBRARY' => 'libc++'
+    'CLANG_CXX_LIBRARY' => 'libc++',
+    'CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES' => 'YES',
+    # Vendored framework is arm64-only; skip arm64 simulator so device builds work.
+    'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'arm64'
+  }
+  s.user_target_xcconfig = {
+    'CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES' => 'YES',
+    'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'arm64'
   }
   s.swift_version = '5.0'
 end

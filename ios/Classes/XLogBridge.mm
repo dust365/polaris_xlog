@@ -1,11 +1,20 @@
 #import "XLogBridge.h"
 #import <sys/time.h>
 #import <pthread.h>
+#import <CommonCrypto/CommonDigest.h>
 
-// mars-xlog C++ headers. Paths assume the mars pod / vendored framework
-// exposes its headers under <mars/xlog/...>. Adjust if your build differs.
-#import <mars/xlog/xlogger.h>
+// mars' comm/strutil.cc references OpenSSL's MD5(), but iOS ships no libcrypto.
+// Provide a drop-in shim backed by CommonCrypto so the vendored framework links.
+extern "C" unsigned char *MD5(const unsigned char *data, unsigned long len, unsigned char *md) {
+    return CC_MD5(data, (CC_LONG)len, md);
+}
+
+// mars-xlog C++ headers from the vendored mars.framework (Headers/xlog/...).
+// We deliberately include xloggerbase.h (the plain extern "C" API) instead of
+// xlogger.h, because xlogger.h pulls "mars/comm/string_cast.h" via a relative
+// include that doesn't resolve with the framework's Headers/{comm,xlog} layout.
 #import <mars/xlog/appender.h>
+#import <mars/xlog/xloggerbase.h>
 
 using namespace mars::xlog;
 

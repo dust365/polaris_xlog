@@ -44,5 +44,5 @@ coverage/
 **/Flutter/App.framework/
 **/Flutter/Flutter.framework/
 
-# Vendored native frameworks (build locally, see README)
-ios/Frameworks/
+# Vendored mars.framework IS committed so the plugin builds out-of-the-box.
+# (Rebuild it with tools/build_mars_ios.sh.)
