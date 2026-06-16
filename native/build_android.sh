@@ -32,6 +32,7 @@ HOST="$(ls "$NDK/toolchains/llvm/prebuilt" | head -1)"   # e.g. darwin-x86_64
 STRIP="$NDK/toolchains/llvm/prebuilt/$HOST/bin/llvm-strip"
 echo ">> Using NDK: $NDK ($HOST)"
 echo ">> ANDROID_STL=c++_static (no separate libc++_shared.so)"
+echo ">> MARS_STRIP=$MARS_STRIP (0=keep debug symbols, 1=llvm-strip)"
 
 WORK="${TMPDIR:-/tmp}/mars_android_$$"
 MARS="$WORK/mars"              # build from a throwaway copy of native/mars
@@ -66,8 +67,12 @@ for abi in "${ABIS[@]}"; do
   [ -n "$SO" ] || { echo "!! libmarsxlog.so not found for $abi"; exit 1; }
   DST="$JNILIBS/$abi"; mkdir -p "$DST"
   cp "$SO" "$DST/"
-  "$STRIP" "$DST/libmarsxlog.so" 2>/dev/null || true
-  echo "OK $abi -> $DST ($(ls -lh "$DST/libmarsxlog.so" | awk '{print $5}'))"
+  if [ "$MARS_STRIP" = "1" ]; then
+    "$STRIP" "$DST/libmarsxlog.so"
+    echo "OK $abi -> $DST ($(ls -lh "$DST/libmarsxlog.so" | awk '{print $5}'), stripped)"
+  else
+    echo "OK $abi -> $DST ($(ls -lh "$DST/libmarsxlog.so" | awk '{print $5}'), symbols kept)"
+  fi
 done
 
 # --- vendor the Java glue (so we can drop the Maven dependency) --------------

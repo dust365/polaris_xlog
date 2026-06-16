@@ -8,6 +8,18 @@ set -euo pipefail
 NATIVE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="$(cd "$NATIVE_DIR/.." && pwd)"
 
+# Strip debug symbols from vendored native binaries before they land in jniLibs /
+# mars.xcframework. Both build_ios.sh and build_android.sh honor this switch.
+#
+#   MARS_STRIP=1  (default) — smaller LFS footprint (Android: llvm-strip; iOS: strip -S).
+#   MARS_STRIP=0  — keep symbols for native crash diagnosis (Android .so ~12MB).
+#
+# Example (keep symbols while debugging mars itself):
+#   MARS_STRIP=0 bash native/build_android.sh
+#   MARS_STRIP=0 bash native/build_ios.sh
+: "${MARS_STRIP:=1}"
+export MARS_STRIP
+
 # Resolve the pinned mars revision. CLI arg overrides MARS_VERSION file.
 mars_ref() {
   if [ "${1:-}" != "" ]; then

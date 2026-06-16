@@ -36,8 +36,8 @@ class XlogPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                 val cacheDir = File(logDir, "cache").apply { mkdirs() }.absolutePath
                 Log.setLogImp(Xlog())
                 Log.setConsoleLogOpen(call.argument<Boolean>("consoleLogOpen") ?: true)
-                // appenderOpen rotates one file per day: <prefix>_YYYYMMDD.xlog
-                // 1.2.6 API has no pubKey param; encryption not supported in this version
+                // Daily files: <prefix>_YYYYMMDD.xlog under filesDir/xlog
+                // TODO: pass pubKey into mars XLogConfig when encryption is enabled
                 Log.appenderOpen(level, Xlog.AppednerModeAsync, cacheDir, logDir, prefix, cacheDays)
                 result.success(null)
             }

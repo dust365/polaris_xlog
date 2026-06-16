@@ -2,8 +2,8 @@ Pod::Spec.new do |s|
   s.name             = 'xlog_plugin'
   s.version          = '0.1.0'
   s.summary          = 'Flutter plugin wrapping Tencent mars-xlog.'
-  s.description      = 'High-performance, encrypted, daily-rotated logging with dev-mode upload.'
-  s.homepage         = 'https://github.com/youfi/mlog'
+  s.description      = 'High-performance daily-rotated logging powered by Tencent mars-xlog.'
+  s.homepage         = 'https://github.com/dust365/xlog_plugin'
   s.license          = { :file => '../LICENSE' }
   s.author           = { 'youfi' => 'huichen@youfi.com' }
   s.source           = { :path => '.' }

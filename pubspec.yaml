@@ -1,11 +1,14 @@
 name: xlog_plugin
-description: A Flutter plugin wrapping Tencent mars-xlog. High-performance, encrypted, daily-rotated logging with developer-mode log upload.
+description: >
+  Flutter plugin for Tencent mars-xlog: high-performance daily-rotated local
+  logs with optional encryption, pure-Dart decoding, and zero Dart dependencies.
 version: 0.1.0
-homepage: https://github.com/youfi/mlog
-publish_to: none
+homepage: https://github.com/dust365/xlog_plugin
+repository: https://github.com/dust365/xlog_plugin
+issue_tracker: https://github.com/dust365/xlog_plugin/issues
+documentation: https://github.com/dust365/xlog_plugin#readme
 
 environment:
-  # Aligned with YouFi (Flutter 3.44 / Dart 3.12).
   sdk: ">=3.1.0 <4.0.0"
   flutter: ">=3.10.0"
 

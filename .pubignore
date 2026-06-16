@@ -1,0 +1,12 @@
+# Maintainer-only: vendored mars source (~37MB). Rebuild with native/fetch_mars.sh
+# from the GitHub repo; not needed for pub consumers (prebuilt .so / .xcframework ship).
+native/mars/
+
+# Internal planning / build scratch
+TODO.md
+build/
+**/*.log
+**/cmake_build/
+
+# Example app is not part of the published package API surface
+example/

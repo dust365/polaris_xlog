@@ -23,7 +23,8 @@ mkdir -p "$WORK" "$STAGE"
 stage_mars "$MARS"
 
 PLATFORMS="OS64"
-STAGE="$STAGE" PLATFORMS="$PLATFORMS" python3 - "$MARS" <<'PY'
+echo ">> MARS_STRIP=$MARS_STRIP (0=keep debug symbols, 1=strip -S on static lib)"
+STAGE="$STAGE" PLATFORMS="$PLATFORMS" MARS_STRIP="$MARS_STRIP" python3 - "$MARS" <<'PY'
 import os, glob, sys
 SCRIPT = sys.argv[1]
 sys.path.insert(0, SCRIPT)
@@ -61,7 +62,13 @@ for plat in PLATFORMS:
     if zstd:
         libs.append(zstd[0])
     assert libtool_libs(libs, out + '/mars'), 'libtool failed for %s' % plat
-    make_static_framework(out + '/mars', out + '/mars.framework', XLOG_COPY_HEADER_FILES, '../')
+    mars_lib = out + '/mars'
+    if os.environ.get('MARS_STRIP') == '1':
+        if os.system('strip -S "%s"' % mars_lib) != 0:
+            print('!! strip -S failed for %s' % mars_lib, flush=True)
+            sys.exit(1)
+        print('>> stripped static lib (MARS_STRIP=1)', flush=True)
+    make_static_framework(mars_lib, out + '/mars.framework', XLOG_COPY_HEADER_FILES, '../')
     dst = os.path.join(STAGE, plat)
     os.makedirs(dst, exist_ok=True)
     os.system('cp -R "%s" "%s/"' % (out + '/mars.framework', dst))

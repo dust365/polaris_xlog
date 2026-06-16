@@ -102,6 +102,20 @@ bash native/build_android.sh    # -> android/src/main/jniLibs/<abi>/*.so + Java 
 bash native/fetch_mars.sh       # 按 MARS_VERSION 下载并补丁化到 native/mars/
 ```
 
+### 调试符号开关（`MARS_STRIP`）
+
+两端构建脚本默认 **`MARS_STRIP=1`**（strip 后提交，减小 LFS 体积）。排查 mars 原生崩溃时可临时保留符号：
+
+```bash
+MARS_STRIP=0 bash native/build_android.sh   # libmarsxlog.so ~12MB
+MARS_STRIP=0 bash native/build_ios.sh       # mars static archive ~4.3MB
+```
+
+| `MARS_STRIP` | Android | iOS xcframework |
+|---|---|---|
+| **`1`（默认）** | strip 后 ~747KB | strip 后 ~2.1MB |
+| `0` | 保留符号 ~12MB | 保留符号 ~4.3MB |
+
 ## 升级 mars 的标准流程
 
 1. 修改 `MARS_VERSION` 为新的 tag 或 commit SHA。
