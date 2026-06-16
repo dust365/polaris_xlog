@@ -28,7 +28,6 @@ class XlogPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
             "init" -> {
-                System.loadLibrary("c++_shared")
                 System.loadLibrary("marsxlog")
                 val level = call.argument<Int>("level") ?: Xlog.LEVEL_INFO
                 val prefix = call.argument<String>("namePrefix") ?: "mlog"

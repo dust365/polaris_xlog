@@ -2,8 +2,7 @@
 #
 # Build Tencent mars-xlog for Android from source and vendor the artifacts into
 # the plugin. Produces, for each ABI:
-#   android/src/main/jniLibs/<abi>/libmarsxlog.so
-#   android/src/main/jniLibs/<abi>/libc++_shared.so
+#   android/src/main/jniLibs/<abi>/libmarsxlog.so   (C++ runtime statically linked)
 # plus the Java glue classes:
 #   android/src/main/java/com/tencent/mars/xlog/{Xlog,Log}.java
 #
@@ -18,7 +17,8 @@
 set -euo pipefail
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_common.sh"
 
-ABIS=(armeabi-v7a arm64-v8a x86 x86_64)
+# YouFi / plugin default: arm64-v8a only (no armeabi-v7a / x86 emulators).
+ABIS=(arm64-v8a)
 API=21   # matches the plugin's minSdk
 
 # --- locate NDK -------------------------------------------------------------
@@ -29,18 +29,9 @@ if [ -z "$NDK" ]; then
 fi
 [ -d "$NDK" ] || { echo "!! NDK not found ($NDK). Set ANDROID_NDK_HOME."; exit 1; }
 HOST="$(ls "$NDK/toolchains/llvm/prebuilt" | head -1)"   # e.g. darwin-x86_64
-SYSROOT_LIB="$NDK/toolchains/llvm/prebuilt/$HOST/sysroot/usr/lib"
 STRIP="$NDK/toolchains/llvm/prebuilt/$HOST/bin/llvm-strip"
 echo ">> Using NDK: $NDK ($HOST)"
-
-triple_for() {
-  case "$1" in
-    armeabi-v7a) echo arm-linux-androideabi ;;
-    arm64-v8a)   echo aarch64-linux-android ;;
-    x86)         echo i686-linux-android ;;
-    x86_64)      echo x86_64-linux-android ;;
-  esac
-}
+echo ">> ANDROID_STL=c++_static (no separate libc++_shared.so)"
 
 WORK="${TMPDIR:-/tmp}/mars_android_$$"
 MARS="$WORK/mars"              # build from a throwaway copy of native/mars
@@ -66,7 +57,7 @@ for abi in "${ABIS[@]}"; do
       -DANDROID_NDK="$NDK" \
       -DANDROID_ABI="$abi" \
       -DANDROID_PLATFORM="android-$API" \
-      -DANDROID_STL=c++_shared \
+      -DANDROID_STL=c++_static \
     && cmake --build . --target marsxlog -- -j"${MARS_JOBS:-6}" ) > "$LOG" 2>&1; then
     echo "!! build failed for $abi; last 40 log lines:"; tail -40 "$LOG"; exit 1
   fi
@@ -75,9 +66,8 @@ for abi in "${ABIS[@]}"; do
   [ -n "$SO" ] || { echo "!! libmarsxlog.so not found for $abi"; exit 1; }
   DST="$JNILIBS/$abi"; mkdir -p "$DST"
   cp "$SO" "$DST/"
-  cp "$SYSROOT_LIB/$(triple_for "$abi")/libc++_shared.so" "$DST/"
   "$STRIP" "$DST/libmarsxlog.so" 2>/dev/null || true
-  echo "OK $abi -> $DST"
+  echo "OK $abi -> $DST ($(ls -lh "$DST/libmarsxlog.so" | awk '{print $5}'))"
 done
 
 # --- vendor the Java glue (so we can drop the Maven dependency) --------------
@@ -85,6 +75,9 @@ JAVA_SRC="$MARS/libraries/mars_xlog_sdk/src/main/java/com/tencent/mars/xlog"
 JAVA_DST="$PLUGIN_DIR/android/src/main/java/com/tencent/mars/xlog"
 mkdir -p "$JAVA_DST"
 cp "$JAVA_SRC/Xlog.java" "$JAVA_SRC/Log.java" "$JAVA_DST/"
+# c++_static: drop the separate libc++_shared load from upstream Xlog.open().
+sed -i '' '/System.loadLibrary("c++_shared")/d' "$JAVA_DST/Xlog.java" 2>/dev/null \
+  || sed -i '/System.loadLibrary("c++_shared")/d' "$JAVA_DST/Xlog.java"
 echo ">> Vendored Java glue into $JAVA_DST"
 
 echo ">> Done. jniLibs:"

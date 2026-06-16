@@ -15,13 +15,13 @@ Pod::Spec.new do |s|
   # --- mars-xlog ---------------------------------------------------------
   # Tencent mars xlog is not on the CocoaPods trunk and ships no prebuilt
   # binary, so we vendor an .xcframework built from source via
-  # native/build_ios.sh. It bundles device (arm64) and simulator
-  # (arm64 + x86_64) slices, so it runs on real devices and the simulator.
+  # native/build_ios.sh. Device-only arm64 slice (no simulator; smaller binary).
   s.vendored_frameworks = 'Frameworks/mars.xcframework'
   s.libraries = 'z', 'c++'
   # -----------------------------------------------------------------------
 
-  s.platform = :ios, '11.0'
+  # Aligned with YouFi Runner (IPHONEOS_DEPLOYMENT_TARGET = 13.0).
+  s.platform = :ios, '13.0'
   s.pod_target_xcconfig = {
     'DEFINES_MODULE' => 'YES',
     'CLANG_CXX_LANGUAGE_STANDARD' => 'c++14',

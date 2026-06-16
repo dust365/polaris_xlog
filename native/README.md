@@ -58,8 +58,7 @@ native/
 
 ```
 ios/Frameworks/mars.xcframework/
-├── ios-arm64/                       # 真机 arm64
-└── ios-arm64_x86_64-simulator/      # 模拟器 arm64 + x86_64
+└── ios-arm64/                       # 真机 arm64 only（不含模拟器 slice）
 ```
 
 由 `ios/xlog_plugin.podspec` 的 `vendored_frameworks` 引用。
@@ -68,10 +67,7 @@ ios/Frameworks/mars.xcframework/
 
 ```
 android/src/main/jniLibs/
-├── armeabi-v7a/{libmarsxlog.so, libc++_shared.so}
-├── arm64-v8a/  {libmarsxlog.so, libc++_shared.so}
-├── x86/        {libmarsxlog.so, libc++_shared.so}
-└── x86_64/     {libmarsxlog.so, libc++_shared.so}
+└── arm64-v8a/  libmarsxlog.so   # c++_static, no libc++_shared.so
 
 android/src/main/java/com/tencent/mars/xlog/
 ├── Xlog.java
@@ -111,7 +107,7 @@ bash native/fetch_mars.sh       # 按 MARS_VERSION 下载并补丁化到 native/
 1. 修改 `MARS_VERSION` 为新的 tag 或 commit SHA。
 2. `bash native/fetch_mars.sh` 重新下载并补丁化源码。
 3. `bash native/build_ios.sh && bash native/build_android.sh` 重新产出。
-4. 用 example 工程在 **真机 + 模拟器**（iOS）和真机（Android）回归验证写日志、
+4. 用 example 工程在 **iOS 真机** 和 **Android 真机（arm64）** 回归验证写日志、
    `listLogFiles()`、`decodeLogFile()`。
 5. 留意 mars 大版本是否改了 `.xlog` 块格式或 `ios.toolchain.cmake`/zstd 等构建假设；
    若改了需同步更新本目录脚本与 `lib/src/xlog_decoder.dart`、后端解码脚本。

@@ -1,55 +1,29 @@
 group 'com.youfi.xlog_plugin'
 version '0.1.0'
 
-buildscript {
-    ext.kotlin_version = '1.9.10'
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:8.1.0'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-    }
-}
-
-rootProject.allprojects {
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
-
+// AGP / Kotlin versions come from the host app's settings.gradle.kts
+// (YouFi: AGP 8.11.1, Kotlin 2.2.20). Do not pin an older buildscript here.
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
     namespace 'com.youfi.xlog_plugin'
-    compileSdk 34
+    compileSdk 36
 
     defaultConfig {
         minSdk 21
-        // We vendor libmarsxlog.so (built from source via native/build_android.sh)
-        // for these ABIs under src/main/jniLibs.
+        // Aligned with YouFi (android/app/build.gradle.kts): ship arm64 only.
         ndk {
-            abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+            abiFilters 'arm64-v8a'
         }
     }
 
-    // libmarsxlog.so + libc++_shared.so are vendored prebuilts; the default
-    // jniLibs dir (src/main/jniLibs) is picked up automatically.
-
-    // Other plugins may also bundle libc++_shared.so; avoid duplicate-file errors.
-    packagingOptions {
-        pickFirst 'lib/**/libc++_shared.so'
-    }
-
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
     kotlinOptions {
-        jvmTarget = '1.8'
+        jvmTarget = '11'
     }
 }
 
@@ -57,5 +31,4 @@ dependencies {
     // Tencent mars xlog is built from source and vendored (see native/):
     //   - native .so       -> src/main/jniLibs/<abi>/
     //   - Java glue classes -> src/main/java/com/tencent/mars/xlog/
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 }

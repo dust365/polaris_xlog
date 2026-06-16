@@ -52,7 +52,6 @@ public class Xlog implements Log.LogImp {
 
     public static void open(boolean isLoadLib, int level, int mode, String cacheDir, String logDir, String nameprefix, String pubkey) {
 		if (isLoadLib) {
-			System.loadLibrary("c++_shared");
 			System.loadLibrary("marsxlog");
 		}
 

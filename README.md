@@ -99,7 +99,7 @@ final lines = const LineSplitter().convert(text);
 
 mars-xlog 从源码编译后 vendored 进插件（不再用 Maven 制品）：
 
-- 各 ABI 的 `libmarsxlog.so` + `libc++_shared.so` → `android/src/main/jniLibs/<abi>/`
+- 各 ABI 的 `libmarsxlog.so`（**c++_static**，无单独 `libc++_shared.so`）→ `android/src/main/jniLibs/<abi>/`
 - Java 胶水类 `Xlog.java` / `Log.java` → `android/src/main/java/com/tencent/mars/xlog/`
 
 重建：`bash native/build_android.sh`。胶水代码 `XlogPlugin.kt` 调用 `Xlog` /
@@ -107,7 +107,7 @@ mars-xlog 从源码编译后 vendored 进插件（不再用 Maven 制品）：
 
 ### iOS
 
-mars-xlog **不在 CocoaPods trunk 上，也不提供预编译包**，因此本插件 **vendored 一个从源码编译的 `mars.xcframework`**（已随仓库提交，位于 `ios/Frameworks/mars.xcframework`，含 **真机 arm64 + 模拟器 arm64/x86_64** 三个切片）。podspec 已配置 `vendored_frameworks`，`pod install` 即可，无需额外操作。
+mars-xlog **不在 CocoaPods trunk 上，也不提供预编译包**，因此本插件 **vendored 一个从源码编译的 `mars.xcframework`**（已随仓库提交，位于 `ios/Frameworks/mars.xcframework`，**仅真机 arm64**，不含模拟器 slice）。podspec 已配置 `vendored_frameworks`，`pod install` 即可，无需额外操作。
 
 Swift 插件 `XlogPlugin.swift` 通过 ObjC++ 桥接 `XLogBridge.mm` 调用 mars 的 C++ appender API（`<mars/xlog/appender.h>` + `<mars/xlog/xloggerbase.h>`）。日志目录为 `Documents/xlog`。
 
@@ -123,7 +123,7 @@ Swift 插件 `XlogPlugin.swift` 通过 ObjC++ 桥接 `XLogBridge.mm` 调用 mars
 bash native/build_ios.sh
 ```
 
-脚本用本地 `native/mars/` 源码、cmake 编译出含真机 + 模拟器切片的 `mars.xcframework`
+脚本用本地 `native/mars/` 源码、cmake 编译出 **真机 arm64 only** 的 `mars.xcframework`
 并拷到 `ios/Frameworks/`。需要 `cmake / Xcode / python3`。
 
 #### 在真机上运行（需要你的 Apple 账号）

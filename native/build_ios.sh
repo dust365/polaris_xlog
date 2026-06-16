@@ -3,12 +3,12 @@
 # Build Tencent mars-xlog into ios/Frameworks/mars.xcframework from source.
 #
 # mars is not on the CocoaPods trunk and ships no prebuilt binary, so we compile
-# it ourselves. The output .xcframework bundles three slices so the plugin runs
-# on real devices AND the simulator:
-#   - OS64           : iphoneos  arm64    (real device)
-#   - SIMULATORARM64 : iphonesim arm64    (Apple Silicon simulator)
-#   - SIMULATOR64    : iphonesim x86_64   (Intel simulator)
-# The two simulator slices are lipo'd into one framework before assembly.
+# it ourselves. The output .xcframework contains **device only**:
+#   - OS64 : iphoneos arm64 (real device)
+#
+# Simulator slices are intentionally omitted (YouFi ships on device; saves ~50%
+# of the xcframework size). To debug on simulator, rebuild with SIMULATORARM64
+# or restore the old multi-slice script from git history.
 #
 # Requirements: cmake, Xcode command line tools, python3.
 # Builds from the vendored native/mars source (run native/fetch_mars.sh first).
@@ -22,7 +22,7 @@ STAGE="$WORK/stage"
 mkdir -p "$WORK" "$STAGE"
 stage_mars "$MARS"
 
-PLATFORMS="OS64 SIMULATORARM64 SIMULATOR64"
+PLATFORMS="OS64"
 STAGE="$STAGE" PLATFORMS="$PLATFORMS" python3 - "$MARS" <<'PY'
 import os, glob, sys
 SCRIPT = sys.argv[1]
@@ -68,23 +68,12 @@ for plat in PLATFORMS:
     print('OK iOS slice', plat, flush=True)
 PY
 
-echo ">> Combining simulator slices (arm64 + x86_64)"
-SIM_FW="$STAGE/SIMULATOR/mars.framework"
-mkdir -p "$STAGE/SIMULATOR"
-cp -R "$STAGE/SIMULATORARM64/mars.framework" "$STAGE/SIMULATOR/"
-lipo -create \
-  "$STAGE/SIMULATORARM64/mars.framework/mars" \
-  "$STAGE/SIMULATOR64/mars.framework/mars" \
-  -output "$SIM_FW/mars"
-lipo -info "$SIM_FW/mars"
-
 DST="$PLUGIN_DIR/ios/Frameworks"
-echo ">> Assembling mars.xcframework into $DST"
+echo ">> Assembling mars.xcframework (device arm64 only) into $DST"
 mkdir -p "$DST"
 rm -rf "$DST/mars.xcframework" "$DST/mars.framework"
 xcodebuild -create-xcframework \
   -framework "$STAGE/OS64/mars.framework" \
-  -framework "$SIM_FW" \
   -output "$DST/mars.xcframework"
 
 echo ">> Done. Slices:"
