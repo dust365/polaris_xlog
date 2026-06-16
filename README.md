@@ -17,8 +17,8 @@
 - **按天滚动**：`<prefix>_YYYYMMDD.xlog`，无需自行切文件。
 - **高性能**：mmap 缓冲 + 异步写入。
 - **可选加密**：`pubKey`（ECDH；Android 原生传参待完善）。
-- **纯 Dart 解码**：默认 zlib、无加密日志可在 App 内 `decodeLogFile`。
-- **统一 API**：`XLog.init()` / `.i()` / `.flush()` / `.close()`。
+- **纯 Dart 解码**：默认 zlib、无加密日志可在 App 内 `decodeLogFile`（worker isolate，不阻塞 UI）。
+- **控制台镜像**：`consoleLogOpen` 初始化开关（默认关；调试可用 `kDebugMode`）。
 - **上传由业务实现**：插件不内置 HTTP 客户端（example 有 `http` 示范）。
 
 ## 安装
@@ -42,11 +42,13 @@ dependencies:
 ```dart
 import 'package:xlog_plugin/xlog_plugin.dart';
 
+import 'package:flutter/foundation.dart';
+
 await XLog.init(
   level: XLogLevel.info,
   namePrefix: 'mlog',
   cacheDays: 7,
-  consoleLogOpen: true,
+  consoleLogOpen: kDebugMode, // true → logcat / Xcode；false → 仅写 .xlog
 );
 
 XLog.i('App', 'started');
@@ -70,7 +72,7 @@ final file = await XLog.logFileForDate();
 final text = await XLog.decodeLogFile(file.path);
 ```
 
-限制：无 `pubKey` 的 zlib 块可解；加密 / zstd 块需后端或官方 Python 解码器。
+限制：无 `pubKey` 的 zlib 块可解；加密 / zstd 块需后端或官方 Python 解码器。App 内解码上限 **10 MiB**（`XLogDecoder.maxDecodeFileBytes`），超出请上传后在服务端查看。
 
 ## API
 

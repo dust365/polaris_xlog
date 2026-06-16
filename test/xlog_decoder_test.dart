@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xlog_plugin/xlog_plugin.dart';
@@ -17,6 +18,8 @@ List<int> _plainBlock(String text) {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   test('decodeBytes decodes uncompressed nocrypt block', () {
     final bytes = _plainBlock('hello mars\n');
     expect(XLogDecoder.decodeBytes(bytes), 'hello mars\n');
@@ -24,5 +27,26 @@ void main() {
 
   test('decodeBytes returns empty string for invalid input', () {
     expect(XLogDecoder.decodeBytes(const [0xFF, 0xFF]), '');
+  });
+
+  test('decodeFile decodes via worker isolate', () async {
+    final dir = await Directory.systemTemp.createTemp('xlog_decoder_test');
+    addTearDown(() => dir.delete(recursive: true));
+    final file = File('${dir.path}/test.xlog');
+    await file.writeAsBytes(_plainBlock('isolate ok\n'));
+    expect(await XLogDecoder.decodeFile(file.path), 'isolate ok\n');
+  });
+
+  test('decodeFile rejects oversized files', () async {
+    final dir = await Directory.systemTemp.createTemp('xlog_decoder_test');
+    addTearDown(() => dir.delete(recursive: true));
+    final file = File('${dir.path}/big.xlog');
+    final raf = await file.open(mode: FileMode.write);
+    await raf.truncate(XLogDecoder.maxDecodeFileBytes + 1);
+    await raf.close();
+    expect(
+      () => XLogDecoder.decodeFile(file.path),
+      throwsA(isA<XLogDecodeFileTooLargeException>()),
+    );
   });
 }

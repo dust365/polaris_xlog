@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:xlog_plugin/xlog_plugin.dart';
 
@@ -10,7 +11,7 @@ Future<void> main() async {
     level: XLogLevel.verbose,
     namePrefix: 'mlog',
     cacheDays: 7,
-    consoleLogOpen: true,
+    consoleLogOpen: kDebugMode,
   );
   XLog.i('App', 'MLog example started');
   runApp(const MyApp());

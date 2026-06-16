@@ -98,7 +98,11 @@ class _LogViewerPageState extends State<LogViewerPage> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snap.hasError) {
-            return Center(child: Text('Decode failed: ${snap.error}'));
+            final err = snap.error;
+            final msg = err is XLogDecodeFileTooLargeException
+                ? err.toString()
+                : 'Decode failed: $err';
+            return Center(child: Text(msg));
           }
           final all = snap.data ?? const [];
           final lines = _query.isEmpty

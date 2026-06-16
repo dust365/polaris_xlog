@@ -1,6 +1,33 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+
+/// Thrown when [XLogDecoder.decodeFile] refuses to decode an oversized `.xlog`.
+class XLogDecodeFileTooLargeException implements Exception {
+  const XLogDecodeFileTooLargeException({
+    required this.fileBytes,
+    required this.maxBytes,
+    required this.path,
+  });
+
+  final int fileBytes;
+  final int maxBytes;
+  final String path;
+
+  @override
+  String toString() =>
+      'Log file too large to decode on device (${_fmt(fileBytes)} > ${_fmt(maxBytes)} limit): $path. '
+      'Upload the file instead.';
+}
+
+String _fmt(int bytes) {
+  if (bytes < 1024 * 1024) {
+    return '${(bytes / 1024).toStringAsFixed(1)} KB';
+  }
+  return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+}
+
 /// Pure-Dart decoder for Tencent mars `.xlog` files (no-crypt variants).
 ///
 /// mars stores logs as a sequence of blocks. Each block has a 1-byte magic,
@@ -37,11 +64,59 @@ class XLogDecoder {
     _asyncNoCryptZstdStart,
   };
 
-  /// Read [path] and return the decoded plain-text log, or throws if the file
-  /// is missing. Undecodable (e.g. encrypted/zstd) blocks are annotated inline.
+  /// Maximum compressed `.xlog` size that [decodeFile] will read/decode on device.
+  ///
+  /// 10 MiB covers typical daily dev logs while keeping post-inflate memory
+  /// bounded on mobile. Use upload + server-side decode for larger files.
+  static const int maxDecodeFileBytes = 10 * 1024 * 1024;
+
+  /// Read [path] and return the decoded plain-text log.
+  ///
+  /// Rejects files larger than [maxDecodeFileBytes] before reading. File I/O and
+  /// CPU-heavy inflate run in a worker isolate so the UI thread stays responsive.
+  /// Throws [XLogDecodeFileTooLargeException] or [FileSystemException] when the
+  /// file is too large or missing. Undecodable (e.g. encrypted/zstd) blocks are
+  /// annotated inline.
   static Future<String> decodeFile(String path) async {
-    final bytes = await File(path).readAsBytes();
+    await _assertDecodeFileSize(path);
+    return compute(decodeXLogFileInIsolate, path);
+  }
+
+  /// Synchronous read + decode for use inside [decodeXLogFileInIsolate] only.
+  static String decodeFileSync(String path) {
+    _assertDecodeFileSizeSync(path);
+    final bytes = File(path).readAsBytesSync();
     return decodeBytes(bytes);
+  }
+
+  static Future<void> _assertDecodeFileSize(String path) async {
+    final file = File(path);
+    if (!await file.exists()) {
+      throw FileSystemException('Log file not found', path);
+    }
+    final size = await file.length();
+    if (size > maxDecodeFileBytes) {
+      throw XLogDecodeFileTooLargeException(
+        fileBytes: size,
+        maxBytes: maxDecodeFileBytes,
+        path: path,
+      );
+    }
+  }
+
+  static void _assertDecodeFileSizeSync(String path) {
+    final file = File(path);
+    if (!file.existsSync()) {
+      throw FileSystemException('Log file not found', path);
+    }
+    final size = file.lengthSync();
+    if (size > maxDecodeFileBytes) {
+      throw XLogDecodeFileTooLargeException(
+        fileBytes: size,
+        maxBytes: maxDecodeFileBytes,
+        path: path,
+      );
+    }
   }
 
   /// Decode raw `.xlog` [bytes] into plain text.
@@ -157,3 +232,6 @@ class XLogDecoder {
     return out;
   }
 }
+
+/// Worker-isolate entry: read [path] and decode off the UI isolate.
+String decodeXLogFileInIsolate(String path) => XLogDecoder.decodeFileSync(path);

@@ -32,13 +32,15 @@ class XLog {
   /// Initialize the native logger and open the daily appender.
   ///
   /// [level] – minimum level that gets written.
-  /// [consoleLogOpen] – also echo to logcat / Xcode console (debug only).
+  /// [consoleLogOpen] – mirror logs to logcat (Android) / Xcode console (iOS)
+  /// in addition to writing `.xlog` files. Does not affect file output.
+  /// Recommended: `consoleLogOpen: kDebugMode`.
   /// [namePrefix] – file name prefix; files become `<namePrefix>_YYYYMMDD.xlog`.
   /// [cacheDays] – days to keep mmap cache files (0 = write straight to log dir).
   /// [pubKey] – optional ECDH public key (hex) to encrypt logs at rest.
   static Future<void> init({
     XLogLevel level = XLogLevel.info,
-    bool consoleLogOpen = true,
+    bool consoleLogOpen = false,
     String namePrefix = 'mlog',
     String defaultTag = 'MLog',
     int cacheDays = 0,
@@ -127,9 +129,14 @@ class XLog {
   /// Decode a `.xlog` file at [filePath] into plain text on-device.
   ///
   /// Flushes first so the current day's buffered logs are included when
-  /// reading today's file. Only works for logs written without a `pubKey`
-  /// (the plugin default); encrypted/zstd blocks are annotated and skipped.
-  /// Useful for an in-app log viewer.
+  /// reading today's file. Decoding runs in a worker isolate (via
+  /// [XLogDecoder.decodeFile]) so large files do not block the UI thread.
+  /// Only works for logs written without a `pubKey` (the plugin default);
+  /// encrypted/zstd blocks are annotated and skipped.
+  ///
+  /// Files larger than [XLogDecoder.maxDecodeFileBytes] (10 MiB) throw
+  /// [XLogDecodeFileTooLargeException] — upload them instead.
+  /// Useful for an in-app log viewer; decoded text still occupies memory.
   static Future<String> decodeLogFile(String filePath) async {
     await flush(sync: true);
     return XLogDecoder.decodeFile(filePath);
