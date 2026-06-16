@@ -44,5 +44,12 @@ coverage/
 **/Flutter/App.framework/
 **/Flutter/Flutter.framework/
 
-# Vendored mars.framework IS committed so the plugin builds out-of-the-box.
-# (Rebuild it with tools/build_mars_ios.sh.)
+# --- mars native (see native/README.md) ------------------------------------
+# These ARE committed so the plugin builds out-of-the-box (Git LFS recommended
+# for the binaries, see .gitattributes):
+#   native/mars/                         vendored, build-ready mars source
+#   ios/Frameworks/mars.xcframework      prebuilt iOS framework
+#   android/src/main/jniLibs/**/*.so     prebuilt Android libs
+# Ignore only throwaway in-tree build output:
+native/mars/cmake_build/
+**/*.pyc

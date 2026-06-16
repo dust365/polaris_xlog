@@ -1,6 +1,3 @@
-import 'dart:io';
-
-import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 
 import 'xlog_decoder.dart';
@@ -110,6 +107,10 @@ class XLog {
   }
 
   /// Returns the log file for [date] (defaults to today), or null if none.
+  ///
+  /// Useful when uploading: call [flush] first, then read `.path` and send it
+  /// with your own HTTP client. The plugin intentionally ships no networking
+  /// dependency — uploading is left to the app.
   static Future<XLogFile?> logFileForDate([DateTime? date]) async {
     final day = date ?? DateTime.now();
     final files = await listLogFiles();
@@ -133,98 +134,4 @@ class XLog {
     await flush(sync: true);
     return XLogDecoder.decodeFile(filePath);
   }
-
-  /// Upload a single day's log file to [url] via multipart POST (dio).
-  ///
-  /// Flushes first so the current day's in-memory buffer is on disk.
-  /// [date] defaults to today. [fields] are extra form fields (e.g. userId,
-  /// appVersion). [headers] are extra HTTP headers (e.g. auth token).
-  /// [fieldName] is the multipart field carrying the file (default `file`).
-  /// Pass [dio] to reuse the app's configured instance (interceptors, baseUrl,
-  /// auth). [onSendProgress] reports upload progress.
-  ///
-  /// Returns the [XLogUploadResult]. Throws [StateError] if the file is absent.
-  static Future<XLogUploadResult> uploadLog({
-    required String url,
-    DateTime? date,
-    Map<String, dynamic> fields = const {},
-    Map<String, dynamic> headers = const {},
-    String fieldName = 'file',
-    Dio? dio,
-    ProgressCallback? onSendProgress,
-  }) async {
-    await flush(sync: true);
-    final logFile = await logFileForDate(date);
-    if (logFile == null) {
-      throw StateError('No log file for ${date ?? DateTime.now()}');
-    }
-    return uploadFile(
-      url: url,
-      filePath: logFile.path,
-      fields: fields,
-      headers: headers,
-      fieldName: fieldName,
-      dio: dio,
-      onSendProgress: onSendProgress,
-    );
-  }
-
-  /// Upload an arbitrary log file path. Used by [uploadLog] and the dev-mode UI.
-  ///
-  /// Pass [dio] to reuse the app's configured instance; otherwise a default
-  /// [Dio] is created. `validateStatus` is relaxed so non-2xx responses are
-  /// returned (not thrown) and surfaced via [XLogUploadResult.isSuccess].
-  static Future<XLogUploadResult> uploadFile({
-    required String url,
-    required String filePath,
-    Map<String, dynamic> fields = const {},
-    Map<String, dynamic> headers = const {},
-    String fieldName = 'file',
-    Dio? dio,
-    ProgressCallback? onSendProgress,
-  }) async {
-    final file = File(filePath);
-    if (!await file.exists()) {
-      throw StateError('Log file not found: $filePath');
-    }
-    final fileName = file.uri.pathSegments.last;
-    final formData = FormData.fromMap({
-      ...fields,
-      fieldName: await MultipartFile.fromFile(filePath, filename: fileName),
-    });
-
-    final client = dio ?? Dio();
-    final response = await client.post<dynamic>(
-      url,
-      data: formData,
-      options: Options(
-        headers: headers.isEmpty ? null : headers,
-        validateStatus: (_) => true,
-      ),
-      onSendProgress: onSendProgress,
-    );
-    return XLogUploadResult(
-      statusCode: response.statusCode ?? 0,
-      body: response.data?.toString() ?? '',
-      fileName: fileName,
-    );
-  }
-}
-
-/// Result of a log upload.
-class XLogUploadResult {
-  const XLogUploadResult({
-    required this.statusCode,
-    required this.body,
-    required this.fileName,
-  });
-
-  final int statusCode;
-  final String body;
-  final String fileName;
-
-  bool get isSuccess => statusCode >= 200 && statusCode < 300;
-
-  @override
-  String toString() => 'XLogUploadResult($fileName -> $statusCode)';
 }

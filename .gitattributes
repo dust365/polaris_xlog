@@ -1,0 +1,4 @@
+# Store the prebuilt native binaries via Git LFS to keep the repo lean.
+# Run `git lfs install` once before cloning/committing.
+ios/Frameworks/mars.xcframework/** filter=lfs diff=lfs merge=lfs -text
+android/src/main/jniLibs/**/*.so   filter=lfs diff=lfs merge=lfs -text

@@ -15,7 +15,7 @@ Pod::Spec.new do |s|
   # --- mars-xlog ---------------------------------------------------------
   # Tencent mars xlog is not on the CocoaPods trunk and ships no prebuilt
   # binary, so we vendor an .xcframework built from source via
-  # tools/build_mars_ios.sh. It bundles device (arm64) and simulator
+  # native/build_ios.sh. It bundles device (arm64) and simulator
   # (arm64 + x86_64) slices, so it runs on real devices and the simulator.
   s.vendored_frameworks = 'Frameworks/mars.xcframework'
   s.libraries = 'z', 'c++'

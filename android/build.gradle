@@ -17,8 +17,6 @@ rootProject.allprojects {
     repositories {
         google()
         mavenCentral()
-        // mars-xlog is not on Maven Central; use Alibaba mirror which hosts it
-        maven { url 'https://maven.aliyun.com/repository/public' }
     }
 }
 
@@ -31,10 +29,19 @@ android {
 
     defaultConfig {
         minSdk 21
-        // mars-xlog ships native .so for these ABIs
+        // We vendor libmarsxlog.so (built from source via native/build_android.sh)
+        // for these ABIs under src/main/jniLibs.
         ndk {
             abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
         }
+    }
+
+    // libmarsxlog.so + libc++_shared.so are vendored prebuilts; the default
+    // jniLibs dir (src/main/jniLibs) is picked up automatically.
+
+    // Other plugins may also bundle libc++_shared.so; avoid duplicate-file errors.
+    packagingOptions {
+        pickFirst 'lib/**/libc++_shared.so'
     }
 
     compileOptions {
@@ -47,7 +54,8 @@ android {
 }
 
 dependencies {
-    // Tencent mars xlog: high-performance, encrypted, mmap-backed logging.
-    implementation 'com.tencent.mars:mars-xlog:1.2.6'
+    // Tencent mars xlog is built from source and vendored (see native/):
+    //   - native .so       -> src/main/jniLibs/<abi>/
+    //   - Java glue classes -> src/main/java/com/tencent/mars/xlog/
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 }

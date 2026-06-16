@@ -12,6 +12,9 @@ dependencies:
     sdk: flutter
   xlog_plugin:
     path: ../
+  # Upload is the app's responsibility (the plugin ships no HTTP client);
+  # this example uses package:http to demonstrate it.
+  http: ^1.2.0
 
 dev_dependencies:
   flutter_test:

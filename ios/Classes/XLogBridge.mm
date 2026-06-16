@@ -9,7 +9,7 @@ extern "C" unsigned char *MD5(const unsigned char *data, unsigned long len, unsi
     return CC_MD5(data, (CC_LONG)len, md);
 }
 
-// mars-xlog C++ headers from the vendored mars.framework (Headers/xlog/...).
+// mars-xlog C++ headers from the vendored mars.xcframework (Headers/xlog/...).
 // We deliberately include xloggerbase.h (the plain extern "C" API) instead of
 // xlogger.h, because xlogger.h pulls "mars/comm/string_cast.h" via a relative
 // include that doesn't resolve with the framework's Headers/{comm,xlog} layout.

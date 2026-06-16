@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:xlog_plugin/xlog_plugin.dart';
 
 import 'log_viewer_page.dart';
@@ -32,21 +33,28 @@ class _DeveloperLogPageState extends State<DeveloperLogPage> {
   }
 
   Future<void> _upload(XLogFile file) async {
+    // The plugin ships no HTTP client; uploading is the app's job. This example
+    // uses package:http — flush first so today's buffer is on disk.
+    final platform = Theme.of(context).platform.name;
     setState(() => _uploadingPath = file.path);
     try {
-      final result = await XLog.uploadFile(
-        url: DeveloperLogPage.uploadUrl,
-        filePath: file.path,
-        fields: {
-          'userId': 'huichen@youfi.com',
-          'logDate': file.date.toIso8601String().split('T').first,
-          'platform': Theme.of(context).platform.name,
-        },
-        // headers: {'Authorization': 'Bearer <token>'},
-      );
-      _snack(result.isSuccess
-          ? 'Uploaded ${file.name} (${result.statusCode})'
-          : 'Failed: ${result.statusCode} ${result.body}');
+      await XLog.flush(sync: true);
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse(DeveloperLogPage.uploadUrl),
+      )
+        ..fields['userId'] = 'huichen@youfi.com'
+        ..fields['logDate'] = file.date.toIso8601String().split('T').first
+        ..fields['platform'] = platform
+        // ..headers['Authorization'] = 'Bearer <token>'
+        ..files.add(await http.MultipartFile.fromPath('file', file.path));
+
+      final response = await request.send();
+      final body = await response.stream.bytesToString();
+      final ok = response.statusCode >= 200 && response.statusCode < 300;
+      _snack(ok
+          ? 'Uploaded ${file.name} (${response.statusCode})'
+          : 'Failed: ${response.statusCode} $body');
     } catch (e) {
       XLog.e('Upload', 'failed for ${file.name}', error: e);
       _snack('Error: $e');
