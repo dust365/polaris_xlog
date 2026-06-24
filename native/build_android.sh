@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 #
-# Build Tencent mars-xlog for Android from source and vendor the artifacts into
+# Build Tencent mars-xlog for Android from source and vendor the artifact into
 # the plugin. Produces, for each ABI:
 #   android/src/main/jniLibs/<abi>/libmarsxlog.so   (C++ runtime statically linked)
-# plus the Java glue classes:
-#   android/src/main/java/com/tencent/mars/xlog/{Xlog,Log}.java
+#
+# No Java glue is vendored: the appender is opened and driven entirely from Dart
+# over FFI (the xlog_ffi_* symbols injected into libmarsxlog.so), so the plugin
+# ships no com.tencent.mars.* classes and needs no JNI-by-name ProGuard rules.
 #
 # mars' own build_android.py hardcodes the gcc-4.9 toolchain which was removed in
 # NDK r18+, so we drive cmake/clang directly against the same pinned mars source
@@ -109,16 +111,6 @@ for abi in "${ABIS[@]}"; do
   fi
   echo ">> Verified FFI exports for $abi: xlog_ffi_*"
 done
-
-# --- vendor the Java glue (so we can drop the Maven dependency) --------------
-JAVA_SRC="$MARS/libraries/mars_xlog_sdk/src/main/java/com/tencent/mars/xlog"
-JAVA_DST="$PLUGIN_DIR/android/src/main/java/com/tencent/mars/xlog"
-mkdir -p "$JAVA_DST"
-cp "$JAVA_SRC/Xlog.java" "$JAVA_SRC/Log.java" "$JAVA_DST/"
-# c++_static: drop the separate libc++_shared load from upstream Xlog.open().
-sed -i '' '/System.loadLibrary("c++_shared")/d' "$JAVA_DST/Xlog.java" 2>/dev/null \
-  || sed -i '/System.loadLibrary("c++_shared")/d' "$JAVA_DST/Xlog.java"
-echo ">> Vendored Java glue into $JAVA_DST"
 
 echo ">> Done. jniLibs:"
 find "$JNILIBS" -name '*.so' -exec ls -la {} \;

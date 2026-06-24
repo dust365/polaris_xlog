@@ -12,28 +12,20 @@ public class XlogPlugin: NSObject, FlutterPlugin {
     }()
 
     public static func register(with registrar: FlutterPluginRegistrar) {
-        let channel = FlutterMethodChannel(name: "com.youfi/xlog_plugin", binaryMessenger: registrar.messenger())
+        let channel = FlutterMethodChannel(name: "com.polaris.xlog", binaryMessenger: registrar.messenger())
         registrar.addMethodCallDelegate(XlogPlugin(), channel: channel)
     }
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         // Only the cold paths (init / getLogDir / listLogFiles) run on the channel.
-        // The hot path (log / setLevel / flush / close) goes straight to native via
-        // dart:ffi (see lib/src/xlog_ffi.dart), so there are no channel handlers
-        // for them here.
-        let args = call.arguments as? [String: Any] ?? [:]
+        // The hot path (log / setLevel / flush / close) and the appender open all
+        // go straight to native via dart:ffi (see lib/src/xlog_ffi.dart); the
+        // channel just resolves the app sandbox directories.
         switch call.method {
         case "init":
             let cacheDir = (XlogPlugin.logDir as NSString).appendingPathComponent("cache")
             try? FileManager.default.createDirectory(atPath: cacheDir, withIntermediateDirectories: true)
-            XLogBridge.open(withLevel: Int32(args["level"] as? Int ?? 2),
-                            consoleLogOpen: args["consoleLogOpen"] as? Bool ?? true,
-                            logDir: XlogPlugin.logDir,
-                            cacheDir: cacheDir,
-                            namePrefix: args["namePrefix"] as? String ?? "mlog",
-                            cacheDays: Int32(args["cacheDays"] as? Int ?? 0),
-                            pubKey: args["pubKey"] as? String ?? "")
-            result(nil)
+            result(["logDir": XlogPlugin.logDir, "cacheDir": cacheDir])
         case "getLogDir":
             result(XlogPlugin.logDir)
         case "listLogFiles":

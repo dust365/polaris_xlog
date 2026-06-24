@@ -1,4 +1,4 @@
-library xlog_plugin;
+library polaris_xlog;
 
 export 'src/xlog.dart';
 export 'src/xlog_level.dart';

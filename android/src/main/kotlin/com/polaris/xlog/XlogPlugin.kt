@@ -1,14 +1,20 @@
-package com.youfi.xlog_plugin
+package com.polaris.xlog
 
 import android.content.Context
-import com.tencent.mars.xlog.Log
-import com.tencent.mars.xlog.Xlog
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
 
-/** Flutter <-> mars-xlog glue. Keeps the native surface tiny; HTTP upload lives in Dart. */
+/**
+ * Flutter <-> mars-xlog glue.
+ *
+ * The channel only resolves the app sandbox log directories and loads the native
+ * library; the appender is opened (and all logging happens) from Dart over FFI
+ * (lib/src/xlog_ffi.dart -> libmarsxlog.so's xlog_ffi_* symbols). There is no
+ * com.tencent.mars.* Java glue and no JNI-by-name, so consumer apps need no
+ * special ProGuard/R8 keep rules. HTTP upload lives in Dart.
+ */
 class XlogPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     private lateinit var channel: MethodChannel
     private lateinit var context: Context
@@ -17,7 +23,7 @@ class XlogPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         context = binding.applicationContext
         logDir = File(context.filesDir, "xlog").apply { mkdirs() }.absolutePath
-        channel = MethodChannel(binding.binaryMessenger, "com.youfi/xlog_plugin")
+        channel = MethodChannel(binding.binaryMessenger, "com.polaris.xlog")
         channel.setMethodCallHandler(this)
     }
 
@@ -27,24 +33,15 @@ class XlogPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         // Only the cold paths (init / getLogDir / listLogFiles) run on the channel.
-        // The hot path (log / setLevel / flush / close) goes straight to native via
-        // dart:ffi (see lib/src/xlog_ffi.dart), so there are no channel handlers
-        // for them here.
+        // The hot path (log / setLevel / flush / close) and the appender open all
+        // go straight to native via dart:ffi (see lib/src/xlog_ffi.dart).
         when (call.method) {
             "init" -> {
+                // Load libmarsxlog.so (also runs JNI_OnLoad once); Dart then opens
+                // the appender over FFI using the directories returned here.
                 System.loadLibrary("marsxlog")
-                val level = call.argument<Int>("level") ?: Xlog.LEVEL_INFO
-                val prefix = call.argument<String>("namePrefix") ?: "mlog"
-                val cacheDays = call.argument<Int>("cacheDays") ?: 0
-                val pubKey = call.argument<String>("pubKey") ?: ""
                 val cacheDir = File(logDir, "cache").apply { mkdirs() }.absolutePath
-                Log.setLogImp(Xlog())
-                Log.setConsoleLogOpen(call.argument<Boolean>("consoleLogOpen") ?: true)
-                // Daily files: <prefix>_YYYYMMDD.xlog under filesDir/xlog.
-                // pubKey is forwarded for at-rest encryption ("" = no encryption,
-                // the default); kept in sync with the iOS XLogBridge.open path.
-                Xlog.appenderOpen(level, Xlog.AppednerModeAsync, cacheDir, logDir, prefix, cacheDays, pubKey)
-                result.success(null)
+                result.success(mapOf("logDir" to logDir, "cacheDir" to cacheDir))
             }
             "getLogDir" -> result.success(logDir)
             "listLogFiles" -> {

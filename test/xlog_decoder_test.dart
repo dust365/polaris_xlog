@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:xlog_plugin/xlog_plugin.dart';
+import 'package:polaris_xlog/polaris_xlog.dart';
 
 /// Builds a minimal mars no-compress, no-crypt block (magic 0x08).
 List<int> _plainBlock(String text) {

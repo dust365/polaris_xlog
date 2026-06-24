@@ -1,4 +1,4 @@
-# xlog_plugin_example
+# polaris_xlog_example
 
 A new Flutter project.
 

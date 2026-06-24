@@ -33,11 +33,11 @@ class XLogFfi {
     // refcounted, so this coexists with Kotlin's System.loadLibrary).
     if (Platform.isAndroid) return ffi.DynamicLibrary.open('libmarsxlog.so');
     // iOS: the shim is compiled into the plugin's own dynamic
-    // xlog_plugin.framework (embedded + loaded at launch), so the symbols are
+    // polaris_xlog.framework (embedded + loaded at launch), so the symbols are
     // already in the process image — look them up there (plan §3).
     if (Platform.isIOS) return ffi.DynamicLibrary.process();
     throw UnsupportedError(
-        'xlog_plugin FFI only supports Android and iOS (got ${Platform.operatingSystem}).');
+        'polaris_xlog FFI only supports Android and iOS (got ${Platform.operatingSystem}).');
   }
 
   // Reusable native scratch buffers grown on demand, so a steady stream of logs

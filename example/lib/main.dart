@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:xlog_plugin/xlog_plugin.dart';
+import 'package:polaris_xlog/polaris_xlog.dart';
 
 import 'developer_log_page.dart';
 

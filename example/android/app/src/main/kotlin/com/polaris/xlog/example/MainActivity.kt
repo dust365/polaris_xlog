@@ -1,4 +1,4 @@
-package com.example.xlog_plugin_example
+package com.polaris.xlog.example
 
 import io.flutter.embedding.android.FlutterActivity
 

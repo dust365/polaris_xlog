@@ -8,18 +8,26 @@
 //              layout (<mars/xlog/...>) just like XLogBridge.mm.
 //
 // Why the shim lives in the plugin Pod (and not inside mars.framework): the
-// plugin's own xlog_plugin.framework is already a *dynamic* framework that
+// plugin's own polaris_xlog.framework is already a *dynamic* framework that
 // CocoaPods always embeds, so symbols compiled into it are exported and reached
 // by Dart's DynamicLibrary.process() — with no linker dead-strip (the object is
 // compiled directly into the framework, marked used + default-visibility) and
 // none of the embed/link-ordering problems of vendoring mars itself as dynamic.
-// mars stays a static framework, linked into xlog_plugin.framework as in 0.1.0.
+// mars stays a static framework, linked into polaris_xlog.framework as in 0.1.0.
 // See docs/ffi_0.2.0_plan.md §3.
 
 #import <sys/time.h>
+#import <CommonCrypto/CommonDigest.h>
 
 #import <mars/xlog/appender.h>
 #import <mars/xlog/xloggerbase.h>
+
+// mars' comm/strutil.cc references OpenSSL's MD5(), but iOS ships no libcrypto.
+// Provide a drop-in shim backed by CommonCrypto so the vendored mars static
+// framework links. (Previously lived in XLogBridge.mm, which has been removed.)
+extern "C" unsigned char *MD5(const unsigned char *data, unsigned long len, unsigned char *md) {
+    return CC_MD5(data, (CC_LONG)len, md);
+}
 
 #define XLOG_FFI_EXPORT \
     extern "C" __attribute__((visibility("default"))) __attribute__((used))

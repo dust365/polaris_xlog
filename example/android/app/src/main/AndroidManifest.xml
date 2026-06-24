@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="xlog_plugin_example"
+        android:label="polaris_xlog_example"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

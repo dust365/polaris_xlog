@@ -1,5 +1,5 @@
-name: xlog_plugin_example
-description: Demonstrates xlog_plugin with a developer-mode log upload screen.
+name: polaris_xlog_example
+description: Demonstrates polaris_xlog with a developer-mode log upload screen.
 publish_to: none
 version: 0.1.0
 
@@ -10,7 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  xlog_plugin:
+  polaris_xlog:
     path: ../
   # Upload is the app's responsibility (the plugin ships no HTTP client);
   # this example uses package:http to demonstrate it.

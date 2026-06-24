@@ -30,7 +30,7 @@ import 'xlog_level.dart';
 class XLog {
   XLog._();
 
-  static const MethodChannel _channel = MethodChannel('com.youfi/xlog_plugin');
+  static const MethodChannel _channel = MethodChannel('com.polaris.xlog');
 
   static bool _initialized = false;
   static String _defaultTag = 'MLog';
@@ -56,13 +56,25 @@ class XLog {
     String? pubKey,
   }) async {
     _defaultTag = defaultTag;
-    await _channel.invokeMethod<void>('init', {
-      'level': level.value,
-      'consoleLogOpen': consoleLogOpen,
-      'namePrefix': namePrefix,
-      'cacheDays': cacheDays,
-      'pubKey': pubKey ?? '',
-    });
+    // The channel only resolves the app sandbox directories (the one thing Dart
+    // can't do without path_provider); the appender itself is opened over FFI so
+    // there is no Java/ObjC mars glue to depend on (no JNI-by-name, no
+    // com.tencent.mars.* classes shipped). See docs/ffi_0.2.0_plan.md §3.
+    final dirs = await _channel.invokeMapMethod<String, String>('init');
+    final logDir = dirs?['logDir'];
+    final cacheDir = dirs?['cacheDir'];
+    if (logDir == null || cacheDir == null) {
+      throw StateError('polaris_xlog: native init did not return log directories');
+    }
+    XLogFfi.instance.open(
+      level: level.value,
+      consoleOpen: consoleLogOpen,
+      logDir: logDir,
+      cacheDir: cacheDir,
+      namePrefix: namePrefix,
+      cacheDays: cacheDays,
+      pubKey: pubKey ?? '',
+    );
     _initialized = true;
   }
 

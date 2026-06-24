@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:xlog_plugin/xlog_plugin.dart';
+import 'package:polaris_xlog/polaris_xlog.dart';
 
 /// Decodes one `.xlog` file on-device and shows it as searchable, color-coded
 /// text. Demonstrates `XLog.decodeLogFile` — no backend needed.

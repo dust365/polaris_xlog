@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:xlog_plugin/xlog_plugin.dart';
+import 'package:polaris_xlog/polaris_xlog.dart';
 
 import 'log_viewer_page.dart';
 

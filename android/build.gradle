@@ -1,4 +1,4 @@
-group 'com.youfi.xlog_plugin'
+group 'com.polaris.xlog'
 version '0.2.0'
 
 // AGP / Kotlin versions come from the host app's settings.gradle.kts
@@ -7,7 +7,7 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
-    namespace 'com.youfi.xlog_plugin'
+    namespace 'com.polaris.xlog'
     compileSdk 36
 
     defaultConfig {
@@ -16,9 +16,6 @@ android {
         ndk {
             abiFilters 'arm64-v8a'
         }
-        // Ship JNI keep-rules to consumer apps so R8/ProGuard never renames the
-        // mars-xlog glue classes that libmarsxlog.so resolves by name.
-        consumerProguardFiles 'consumer-rules.pro'
     }
 
     compileOptions {

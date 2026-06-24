@@ -1,4 +1,4 @@
-# mars native 构建（xlog_plugin 的原生产物来源）
+# mars native 构建（polaris_xlog 的原生产物来源）
 
 本目录是 **Tencent mars-xlog 原生产物的唯一构建入口**。Android 与 iOS 都从
 **同一份本地 mars 源码**（`native/mars/`，钉死在 `MARS_VERSION`）编译，保证两端
@@ -61,7 +61,7 @@ ios/Frameworks/mars.xcframework/
 └── ios-arm64/                       # 真机 arm64 only（不含模拟器 slice）
 ```
 
-由 `ios/xlog_plugin.podspec` 的 `vendored_frameworks` 引用。
+由 `ios/polaris_xlog.podspec` 的 `vendored_frameworks` 引用。
 
 ### Android（`native/build_android.sh`）
 
