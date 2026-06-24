@@ -42,6 +42,21 @@ stage_mars() {
   cp -R "$NATIVE_DIR/mars/." "$dst/"
 }
 
+# Copy the FFI shim (native/src/xlog_ffi.*) into a staged mars tree so the
+# xlog/CMakeLists.txt `src/*.cc` glob compiles it into libxlog — and thus into
+# libmarsxlog.so (Android) / mars.framework (iOS). Keeping the shim outside the
+# vendored mars tree means `fetch_mars.sh` upgrades never clobber it.
+#   $1 = inner mars dir (the staged copy)
+copy_ffi_shim() {
+  local mars="$1"
+  if [ ! -f "$NATIVE_DIR/src/xlog_ffi.cc" ]; then
+    echo "!! native/src/xlog_ffi.cc not found" >&2
+    exit 1
+  fi
+  cp "$NATIVE_DIR/src/xlog_ffi.cc" "$NATIVE_DIR/src/xlog_ffi.h" "$mars/xlog/src/"
+  echo ">> Injected FFI shim into $mars/xlog/src/"
+}
+
 # Clone Tencent/mars at the given ref (tag/branch or full commit SHA) into $1.
 clone_mars() {
   local dst="$1" ref="$2"

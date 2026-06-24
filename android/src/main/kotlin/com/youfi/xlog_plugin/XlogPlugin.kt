@@ -26,6 +26,10 @@ class XlogPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     }
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
+        // Only the cold paths (init / getLogDir / listLogFiles) run on the channel.
+        // The hot path (log / setLevel / flush / close) goes straight to native via
+        // dart:ffi (see lib/src/xlog_ffi.dart), so there are no channel handlers
+        // for them here.
         when (call.method) {
             "init" -> {
                 System.loadLibrary("marsxlog")
@@ -36,31 +40,12 @@ class XlogPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                 val cacheDir = File(logDir, "cache").apply { mkdirs() }.absolutePath
                 Log.setLogImp(Xlog())
                 Log.setConsoleLogOpen(call.argument<Boolean>("consoleLogOpen") ?: true)
-                // Daily files: <prefix>_YYYYMMDD.xlog under filesDir/xlog
-                // TODO: pass pubKey into mars XLogConfig when encryption is enabled
-                Log.appenderOpen(level, Xlog.AppednerModeAsync, cacheDir, logDir, prefix, cacheDays)
+                // Daily files: <prefix>_YYYYMMDD.xlog under filesDir/xlog.
+                // pubKey is forwarded for at-rest encryption ("" = no encryption,
+                // the default); kept in sync with the iOS XLogBridge.open path.
+                Xlog.appenderOpen(level, Xlog.AppednerModeAsync, cacheDir, logDir, prefix, cacheDays, pubKey)
                 result.success(null)
             }
-            "setLevel" -> { Log.setLevel(call.argument<Int>("level") ?: Xlog.LEVEL_INFO, false); result.success(null) }
-            "log" -> {
-                val tag = call.argument<String>("tag") ?: "MLog"
-                val msg = call.argument<String>("msg") ?: ""
-                when (call.argument<Int>("level") ?: Xlog.LEVEL_INFO) {
-                    Xlog.LEVEL_VERBOSE -> Log.v(tag, msg)
-                    Xlog.LEVEL_DEBUG -> Log.d(tag, msg)
-                    Xlog.LEVEL_WARNING -> Log.w(tag, msg)
-                    Xlog.LEVEL_ERROR -> Log.e(tag, msg)
-                    Xlog.LEVEL_FATAL -> Log.f(tag, msg)
-                    else -> Log.i(tag, msg)
-                }
-                result.success(null)
-            }
-            "flush" -> {
-                val sync = call.argument<Boolean>("sync") ?: true
-                if (sync) Log.appenderFlushSync(true) else Log.appenderFlush()
-                result.success(null)
-            }
-            "close" -> { Log.appenderClose(); result.success(null) }
             "getLogDir" -> result.success(logDir)
             "listLogFiles" -> {
                 // mars writes the current day's file into the cache dir when

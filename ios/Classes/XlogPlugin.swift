@@ -17,6 +17,10 @@ public class XlogPlugin: NSObject, FlutterPlugin {
     }
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+        // Only the cold paths (init / getLogDir / listLogFiles) run on the channel.
+        // The hot path (log / setLevel / flush / close) goes straight to native via
+        // dart:ffi (see lib/src/xlog_ffi.dart), so there are no channel handlers
+        // for them here.
         let args = call.arguments as? [String: Any] ?? [:]
         switch call.method {
         case "init":
@@ -30,17 +34,6 @@ public class XlogPlugin: NSObject, FlutterPlugin {
                             cacheDays: Int32(args["cacheDays"] as? Int ?? 0),
                             pubKey: args["pubKey"] as? String ?? "")
             result(nil)
-        case "setLevel":
-            XLogBridge.setLevel(Int32(args["level"] as? Int ?? 2)); result(nil)
-        case "log":
-            XLogBridge.log(withLevel: Int32(args["level"] as? Int ?? 2),
-                           tag: args["tag"] as? String ?? "MLog",
-                           message: args["msg"] as? String ?? "")
-            result(nil)
-        case "flush":
-            XLogBridge.flushSync(args["sync"] as? Bool ?? true); result(nil)
-        case "close":
-            XLogBridge.close(); result(nil)
         case "getLogDir":
             result(XlogPlugin.logDir)
         case "listLogFiles":

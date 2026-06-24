@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 
 import 'xlog_decoder.dart';
+import 'xlog_ffi.dart';
 import 'xlog_file.dart';
 import 'xlog_level.dart';
 
@@ -18,6 +19,14 @@ import 'xlog_level.dart';
 ///
 /// mars-xlog writes one encrypted, mmap-buffered file **per calendar day**
 /// (`<prefix>_YYYYMMDD.xlog`). Old files are pruned after [cacheDays].
+///
+/// Architecture (0.2.0): the hot path (`v`/`d`/`i`/`w`/`e`/[flush]/[setLevel]/
+/// [close]) goes straight to native via `dart:ffi`, so logging works from **any
+/// isolate** and never blocks on the platform channel. Cold paths that need the
+/// app sandbox directory ([init]/[listLogFiles]/[getLogDir]) stay on the
+/// MethodChannel. Both sides drive mars' single process-global appender, so it
+/// does not matter that `init` opens it on the channel while logs are written
+/// over FFI.
 class XLog {
   XLog._();
 
@@ -57,9 +66,10 @@ class XLog {
     _initialized = true;
   }
 
-  /// Change the minimum log level at runtime.
-  static Future<void> setLevel(XLogLevel level) =>
-      _channel.invokeMethod<void>('setLevel', {'level': level.value});
+  /// Change the minimum log level at runtime (FFI; affects all isolates).
+  static Future<void> setLevel(XLogLevel level) async {
+    XLogFfi.instance.setLevel(level.value);
+  }
 
   static void v(String tag, String msg) => _write(XLogLevel.verbose, tag, msg);
   static void d(String tag, String msg) => _write(XLogLevel.debug, tag, msg);
@@ -75,22 +85,27 @@ class XLog {
   }
 
   static void _write(XLogLevel level, String tag, String msg) {
-    // Fire-and-forget: logging must never block or throw into business code.
-    _channel.invokeMethod<void>('log', {
-      'level': level.value,
-      'tag': tag.isEmpty ? _defaultTag : tag,
-      'msg': msg,
-    });
+    // Level filter delegated to native (a single global-int read over FFI).
+    // Using mars' own level keeps the gate correct across *all* isolates — a
+    // background/`compute` isolate that never called [init]/[setLevel] has no
+    // Dart-side state to consult, yet still logs/filters correctly (plan §5.3).
+    final ffi = XLogFfi.instance;
+    if (!ffi.isEnabled(level.value)) return;
+    // Direct synchronous FFI write on the calling isolate; mars buffers in mmap
+    // and persists on its own thread, so this returns almost immediately and
+    // never blocks the UI on the platform channel.
+    ffi.log(level.value, tag.isEmpty ? _defaultTag : tag, msg);
   }
 
   /// Flush the mmap buffer to disk. Call before reading or uploading files.
-  /// [sync] true blocks until the write completes.
-  static Future<void> flush({bool sync = true}) =>
-      _channel.invokeMethod<void>('flush', {'sync': sync});
+  /// [sync] true blocks the calling isolate until the write completes.
+  static Future<void> flush({bool sync = true}) async {
+    XLogFfi.instance.flush(sync: sync);
+  }
 
   /// Flush and close the appender. Call on app termination.
   static Future<void> close() async {
-    await _channel.invokeMethod<void>('close');
+    XLogFfi.instance.close();
     _initialized = false;
   }
 

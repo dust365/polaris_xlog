@@ -1,8 +1,8 @@
 name: xlog_plugin
 description: >
   Flutter plugin for Tencent mars-xlog: high-performance daily-rotated local
-  logs with optional encryption, pure-Dart decoding, and zero Dart dependencies.
-version: 0.1.0
+  logs with optional encryption, pure-Dart decoding, and FFI hot-path logging.
+version: 0.2.0-dev.1
 homepage: https://github.com/dust365/xlog_plugin
 repository: https://github.com/dust365/xlog_plugin
 issue_tracker: https://github.com/dust365/xlog_plugin/issues
@@ -15,11 +15,16 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  # FFI hot path (log/flush/setLevel/close). Official Dart package.
+  ffi: ^2.1.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  # Generates lib/src/xlog_ffi_bindings.dart from native/src/xlog_ffi.h.
+  # Run: dart run ffigen --config ffigen.yaml
+  ffigen: ^11.0.0
 
 flutter:
   plugin:

@@ -4,6 +4,7 @@ native/mars/
 
 # Internal planning / build scratch
 TODO.md
+docs/
 build/
 **/*.log
 **/cmake_build/

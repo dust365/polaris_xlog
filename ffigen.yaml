@@ -1,0 +1,24 @@
+# ffigen config for the mars-xlog FFI shim.
+#
+# Regenerate the Dart bindings after editing native/src/xlog_ffi.h:
+#   dart run ffigen --config ffigen.yaml
+#
+# Requires libclang (ships with LLVM / Xcode command line tools).
+name: XLogFfiBindings
+description: 'Low-level FFI bindings for the mars-xlog C shim (native/src/xlog_ffi.h).'
+output: 'lib/src/xlog_ffi_bindings.dart'
+headers:
+  entry-points:
+    - 'native/src/xlog_ffi.h'
+  include-directives:
+    - '**xlog_ffi.h'
+functions:
+  include:
+    - 'xlog_ffi_.*'
+comments:
+  style: any
+  length: full
+preamble: |
+  // GENERATED CODE - DO NOT MODIFY BY HAND.
+  // Regenerate with: dart run ffigen --config ffigen.yaml
+  // ignore_for_file: always_specify_types, camel_case_types, non_constant_identifier_names, unused_element, unused_field, return_of_invalid_type, void_checks, annotate_overrides, no_leading_underscores_for_local_identifiers, library_private_types_in_public_api

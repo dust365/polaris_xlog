@@ -1,5 +1,5 @@
 group 'com.youfi.xlog_plugin'
-version '0.1.0'
+version '0.2.0'
 
 // AGP / Kotlin versions come from the host app's settings.gradle.kts
 // (YouFi: AGP 8.11.1, Kotlin 2.2.20). Do not pin an older buildscript here.
@@ -16,6 +16,9 @@ android {
         ndk {
             abiFilters 'arm64-v8a'
         }
+        // Ship JNI keep-rules to consumer apps so R8/ProGuard never renames the
+        // mars-xlog glue classes that libmarsxlog.so resolves by name.
+        consumerProguardFiles 'consumer-rules.pro'
     }
 
     compileOptions {

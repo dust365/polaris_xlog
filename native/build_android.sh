@@ -30,6 +30,7 @@ fi
 [ -d "$NDK" ] || { echo "!! NDK not found ($NDK). Set ANDROID_NDK_HOME."; exit 1; }
 HOST="$(ls "$NDK/toolchains/llvm/prebuilt" | head -1)"   # e.g. darwin-x86_64
 STRIP="$NDK/toolchains/llvm/prebuilt/$HOST/bin/llvm-strip"
+NM="$NDK/toolchains/llvm/prebuilt/$HOST/bin/llvm-nm"
 echo ">> Using NDK: $NDK ($HOST)"
 echo ">> ANDROID_STL=c++_static (no separate libc++_shared.so)"
 echo ">> MARS_STRIP=$MARS_STRIP (0=keep debug symbols, 1=llvm-strip)"
@@ -38,6 +39,28 @@ WORK="${TMPDIR:-/tmp}/mars_android_$$"
 MARS="$WORK/mars"              # build from a throwaway copy of native/mars
 mkdir -p "$WORK"
 stage_mars "$MARS"
+copy_ffi_shim "$MARS"
+
+# Export the FFI symbols. libmarsxlog.so is linked with a version-script
+# (export.exp) whose `local: *;` hides everything not explicitly listed, so add
+# the xlog_ffi_* family to the global section or Dart's dlsym would fail.
+EXP="$MARS/libraries/mars_android_sdk/jni/export.exp"
+if ! grep -q 'xlog_ffi_' "$EXP"; then
+  awk '/^global:/ && !done {print; print "    xlog_ffi_*;"; done=1; next} {print}' \
+    "$EXP" > "$EXP.tmp" && mv "$EXP.tmp" "$EXP"
+  echo ">> Added xlog_ffi_* to Android export.exp"
+fi
+
+# The shim lands in libxlog.a but nothing references it, so the linker would not
+# pull its object into libmarsxlog.so (and --gc-sections would drop it). Force
+# each symbol as an undefined link root so the object is pulled and retained.
+ROOT_CM="$MARS/CMakeLists.txt"
+if ! grep -q 'xlog_ffi_log' "$ROOT_CM"; then
+  UFLAGS="-Wl,-u,xlog_ffi_open -Wl,-u,xlog_ffi_set_level -Wl,-u,xlog_ffi_get_level -Wl,-u,xlog_ffi_is_enabled -Wl,-u,xlog_ffi_log -Wl,-u,xlog_ffi_flush -Wl,-u,xlog_ffi_close"
+  sed -i.bak "s|-Wl,--gc-sections -Wl,--version-script|$UFLAGS -Wl,--gc-sections -Wl,--version-script|" \
+    "$ROOT_CM" && rm -f "$ROOT_CM.bak"
+  echo ">> Forced xlog_ffi_* link roots in marsxlog target"
+fi
 
 JNILIBS="$PLUGIN_DIR/android/src/main/jniLibs"
 echo ">> Cleaning $JNILIBS"
@@ -73,6 +96,18 @@ for abi in "${ABIS[@]}"; do
   else
     echo "OK $abi -> $DST ($(ls -lh "$DST/libmarsxlog.so" | awk '{print $5}'), symbols kept)"
   fi
+
+  # Hard gate: the FFI hot path is dlsym-only, so a missing export means a
+  # runtime crash with no fallback. Fail the build instead (plan §3/§11).
+  missing=""
+  for sym in xlog_ffi_open xlog_ffi_set_level xlog_ffi_is_enabled \
+             xlog_ffi_log xlog_ffi_flush xlog_ffi_close; do
+    "$NM" -D "$DST/libmarsxlog.so" 2>/dev/null | grep -q " $sym\$" || missing="$missing $sym"
+  done
+  if [ -n "$missing" ]; then
+    echo "!! FFI symbols NOT exported from libmarsxlog.so ($abi):$missing"; exit 1
+  fi
+  echo ">> Verified FFI exports for $abi: xlog_ffi_*"
 done
 
 # --- vendor the Java glue (so we can drop the Maven dependency) --------------

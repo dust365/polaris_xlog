@@ -1,6 +1,4 @@
 #import "XLogBridge.h"
-#import <sys/time.h>
-#import <pthread.h>
 #import <CommonCrypto/CommonDigest.h>
 
 // mars' comm/strutil.cc references OpenSSL's MD5(), but iOS ships no libcrypto.
@@ -39,37 +37,6 @@ using namespace mars::xlog;
     appender_open(config);
     xlogger_SetLevel((TLogLevel)level);
     appender_set_console_log(consoleLogOpen);
-}
-
-+ (void)setLevel:(int)level {
-    xlogger_SetLevel((TLogLevel)level);
-}
-
-+ (void)logWithLevel:(int)level tag:(NSString *)tag message:(NSString *)message {
-    XLoggerInfo info;
-    memset(&info, 0, sizeof(XLoggerInfo));
-    info.level = (TLogLevel)level;
-    info.tag = tag.UTF8String;
-    info.filename = "";
-    info.func_name = "";
-    info.line = 0;
-    gettimeofday(&info.timeval, NULL);
-    info.pid = getpid();
-    info.tid = (uintptr_t)pthread_self();
-    info.maintid = (uintptr_t)pthread_self();
-    xlogger_Write(&info, message.UTF8String);
-}
-
-+ (void)flushSync:(BOOL)sync {
-    if (sync) {
-        appender_flush_sync();
-    } else {
-        appender_flush();
-    }
-}
-
-+ (void)close {
-    appender_close();
 }
 
 @end

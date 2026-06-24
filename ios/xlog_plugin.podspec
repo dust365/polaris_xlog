@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'xlog_plugin'
-  s.version          = '0.1.0'
+  s.version          = '0.2.0'
   s.summary          = 'Flutter plugin wrapping Tencent mars-xlog.'
   s.description      = 'High-performance daily-rotated logging powered by Tencent mars-xlog.'
   s.homepage         = 'https://github.com/dust365/xlog_plugin'

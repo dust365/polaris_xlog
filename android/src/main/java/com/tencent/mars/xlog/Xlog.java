@@ -68,6 +68,25 @@ public class Xlog implements Log.LogImp {
 		appenderOpen(logConfig);
 	}
 
+	// Open the process-global appender with full config including pubkey.
+	// The LogImp#appenderOpen overload hardcodes pubkey="" (and cannot carry it),
+	// so the plugin calls this directly to support at-rest encryption while still
+	// honoring cacheDays. An empty/null pubkey means no encryption (the default).
+	public static void appenderOpen(int level, int mode, String cacheDir, String logDir,
+			String nameprefix, int cacheDays, String pubkey) {
+		XLogConfig logConfig = new XLogConfig();
+		logConfig.level = level;
+		logConfig.mode = mode;
+		logConfig.logdir = logDir;
+		logConfig.nameprefix = nameprefix;
+		logConfig.pubkey = pubkey == null ? "" : pubkey;
+		logConfig.compressmode = ZLIB_MODE;
+		logConfig.compresslevel = 0;
+		logConfig.cachedir = cacheDir;
+		logConfig.cachedays = cacheDays;
+		appenderOpen(logConfig);
+	}
+
 	private static String decryptTag(String tag) {
 		return tag;
 	}
