@@ -2,7 +2,7 @@ name: polaris_xlog
 description: >
   Flutter plugin for Tencent mars-xlog: high-performance daily-rotated local
   logs with optional encryption, pure-Dart decoding, and FFI hot-path logging.
-version: 0.2.0
+version: 0.2.1
 homepage: https://github.com/dust365/polaris_xlog
 repository: https://github.com/dust365/polaris_xlog
 issue_tracker: https://github.com/dust365/polaris_xlog/issues

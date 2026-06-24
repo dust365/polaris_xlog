@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'polaris_xlog'
-  s.version          = '0.2.0' # keep in sync with pubspec.yaml
+  s.version          = '0.2.1' # keep in sync with pubspec.yaml
   s.summary          = 'Flutter plugin wrapping Tencent mars-xlog.'
   s.description      = 'High-performance daily-rotated logging powered by Tencent mars-xlog.'
   s.homepage         = 'https://github.com/dust365/polaris_xlog'

@@ -9,7 +9,7 @@
 - **纯 Dart 解码器**：设备端查看 zlib、无加密日志（上限 10 MiB）
 - **无 Java mars 胶水**：Android 不含 `com.tencent.mars.*`，R8/ProGuard 无需额外 keep 规则
 
-> **当前版本：`0.2.0`** · mars 源码 pin：`6aa5b56` · 包名：`polaris_xlog` · MethodChannel：`com.polaris.xlog`
+> **当前版本：`0.2.1`** · mars 源码 pin：`6aa5b56` · 包名：`polaris_xlog` · MethodChannel：`com.polaris.xlog`
 
 | 链接 | |
 |------|--|
@@ -37,8 +37,6 @@
 
 ### 1. 添加依赖
 
-**pub.dev（推荐）：**
-
 ```bash
 flutter pub add polaris_xlog
 ```
@@ -47,25 +45,7 @@ flutter pub add polaris_xlog
 
 ```yaml
 dependencies:
-  polaris_xlog: ^0.2.0
-```
-
-**Git 依赖：**
-
-```yaml
-dependencies:
-  polaris_xlog:
-    git:
-      url: https://github.com/dust365/polaris_xlog.git
-      ref: v0.2.0   # tag / branch / commit
-```
-
-**本地 path（monorepo）：**
-
-```yaml
-dependencies:
-  polaris_xlog:
-    path: ../packages/polaris_xlog
+  polaris_xlog: ^0.2.1
 ```
 
 ```bash
@@ -285,7 +265,7 @@ bash native/build_ios.sh           # -> ios/Frameworks/mars.xcframework
    git push origin v0.2.0
    flutter pub publish
    ```
-6. **GitHub Release**：附变更说明，Git 依赖方可 `ref: v0.2.0`。
+6. **GitHub Release**：附变更说明，方便查看版本记录。
 7. **验收**：example 在 iOS 真机 + Android arm64 真机回归 `init`、写日志、`listLogFiles`、`decodeLogFile`。
 
 ---
